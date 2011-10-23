@@ -2,13 +2,13 @@
     var BASE_URL = "https://api.dropbox.com/1/";
     var nonce = 1;
 
-    function DropboxSession(appKey, appSecret, accessType) {
+    function Session(appKey, appSecret, accessType) {
         this.appKey = appKey;
         this.appSecret = appSecret;
         this.accessType = accessType;
         this.requestTokenSecret = '';
     }
-    var p = DropboxSession.prototype;
+    var p = Session.prototype;
 
     p._generateOauthData = function() {
         return {
@@ -72,10 +72,10 @@
         this.accessTokenSecret = tokens.accessTokenSecret;
     };
 
-    function DropboxClient(session) {
+    function Client(session) {
         this.session = session;
     }
-    var c = DropboxClient.prototype;
+    var c = Client.prototype;
 
     c._generateOauthData = function() {
         return {
@@ -138,6 +138,8 @@
         var url = this._getFileUrl('shares', params);
     };
 
-    this.DropboxSession = DropboxSession;
-    this.DropboxClient = DropboxClient;
+    this.Dropbox = {
+        Session: Session,
+        Client: Client
+    };
 })();
