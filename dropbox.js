@@ -6,16 +6,19 @@
         this.appKey = appKey;
         this.appSecret = appSecret;
         this.accessType = accessType;
-        this.requestTokenSecret = '';
+        this.token = {
+            key: '',
+            secret: ''
+        };
     }
     var p = Session.prototype;
 
     p._generateOauthData = function() {
         return {
             oauth_consumer_key: this.appKey,
-            oauth_token: this.requestToken,
+            oauth_token: this.token.key,
             oauth_signature_method: 'PLAINTEXT',
-            oauth_signature: encodeURIComponent(this.appSecret + '&' + this.requestTokenSecret),
+            oauth_signature: encodeURIComponent(this.appSecret + '&' + this.token.secret),
             oauth_nonce: nonce++,
             oauth_timestamp: Date.now()
         };
@@ -29,15 +32,15 @@
             data: this._generateOauthData(),
             success: function(resp) {
                 var parts = resp.split('&');
-                self.requestTokenSecret = parts[0].split('=')[1];
-                self.requestToken = parts[1].split('=')[1];
+                self.token.secret = parts[0].split('=')[1];
+                self.token.key = parts[1].split('=')[1];
                 k();
             }
         });
     };
 
     p.buildAuthorizeUrl = function() {
-        return 'https://www.dropbox.com/1/oauth/authorize?oauth_token=' + this.requestToken;
+        return 'https://www.dropbox.com/1/oauth/authorize?oauth_token=' + this.token.key;
     };
 
     p.obtainAccessToken = function(k) {
@@ -49,8 +52,8 @@
             timeout: 1000,
             success: function(resp) {
                 var parts = resp.split('&');
-                self.accessTokenSecret = parts[0].split('=')[1];
-                self.accessToken = parts[1].split('=')[1];
+                self.token.secret = parts[0].split('=')[1];
+                self.token.key = parts[1].split('=')[1];
                 self.uid = parts[2].split('=')[1];
                 k();
             },
@@ -60,16 +63,8 @@
         });
     };
 
-    p.getState = function() {
-        return {
-            accessToken: this.accessToken,
-            accessTokenSecret: this.accessTokenSecret
-        };
-    };
-
-    p.setState = function(tokens) {
-        this.accessToken = tokens.accessToken;
-        this.accessTokenSecret = tokens.accessTokenSecret;
+    p.setToken = function(token) {
+        this.token = token;
     };
 
     function Client(session) {
@@ -80,9 +75,9 @@
     c._generateOauthData = function() {
         return {
             oauth_consumer_key: this.session.appKey,
-            oauth_token: this.session.accessToken,
+            oauth_token: this.session.token.key,
             oauth_signature_method: 'PLAINTEXT',
-            oauth_signature: encodeURIComponent(this.session.appSecret + '&' + this.session.accessTokenSecret),
+            oauth_signature: encodeURIComponent(this.session.appSecret + '&' + this.session.token.secret),
             oauth_nonce: nonce++,
             oauth_timestamp: Date.now()
         };
