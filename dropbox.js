@@ -85,8 +85,9 @@
 
     c.api = function(method, params, successCallback, errorCallback) {
         var data = this._generateOauthData();
+        var formdata = new FormData();
         params = params || {};
-        for (key in params) {
+        for (var key in params) {
             if (params.hasOwnProperty(key)) {
                 data[key] = params[key];
             }
@@ -99,6 +100,45 @@
             success: successCallback,
             error: errorCallback
         });
+    };
+
+    c._fileapi = function(method, params, successCallback, errorCallback) {
+        if (!params || !params.path) {
+            throw new Error("Must provide a path to work with files");
+        }
+        var data = this._generateOauthData();
+        var url = "https://api-content.dropbox.com/1/" ;
+        var key;
+        params = params || {};
+
+        for (key in params) {
+            if (params.hasOwnProperty(key)) {
+                data[key] = params[key];
+            }
+        }
+
+        codedparams = (function(fd){ var p = []; for (var i in fd) if (i !== 'fileObj') p.push(i + '=' + (i.search('oauth_') === 0 ? fd[i]: encodeURIComponent(fd[i]))); return p; })(data).join('&');
+
+        var reader = new FileReader();
+        var root = this._getRoot();
+        var result = "", start = 0;
+        reader.onerror = function(e){console.log(e);}; 
+        reader.onloadend = function(evt){
+            if (evt.target.readyState == FileReader.DONE){
+                var xhr = $.ajax(); // new XMLHttpRequest();
+                xhr.open('PUT', [url + method, root].join('/') + (params.path? params.path: '') + '?' + codedparams, true);
+                xhr.onerror = errorCallback;
+                xhr.onreadystatechange = function(evt) {
+                    if (this.readyState == 4 && this.status == 200) {
+                        successCallback(evt);
+                    }
+                };
+                xhr.overrideMimeType(data.mimeType);
+                xhr.setRequestHeader('Content-Type', data.mimeType);
+                xhr.sendAsBinary(evt.target.result);
+            }
+        };
+        reader.readAsBinaryString(data.fileObj);
     };
 
     c._getRoot = function() {
@@ -127,6 +167,13 @@
     c.metadata = function(params, successCallback, errorCallback) {
         var url = this._getFileUrl('metadata', params);
         this.api(url, params, successCallback, errorCallback);
+    };
+
+    c.putFile = function(params, successCallback, errorCallback) {
+        params.overwrite = params.overwrite || false;
+        params.mimeType = params.fileObj.type || 'text/plain';
+        
+        this._fileapi('files_put', params, successCallback, errorCallback);
     };
 
     c.shares = function(params, successCallback, errorCallback) {
