@@ -102,7 +102,7 @@
         });
     };
 
-    c._fileapi = function(method, params, successCallback, errorCallback) {
+    c._fileapi = function(method, params, successCallback, errorCallback, progressCallback) {
         if (!params || !params.path) {
             throw new Error("Must provide a path to work with files");
         }
@@ -117,16 +117,16 @@
             }
         }
 
-        codedparams = (function(fd){ var p = []; for (var i in fd) if (i !== 'fileObj') p.push(i + '=' + (i.search('oauth_') === 0 ? fd[i]: encodeURIComponent(fd[i]))); return p; })(data).join('&');
+        var codedparams = (function(fd){ var p = []; for (var i in fd) if (i !== 'fileObj') p.push(i + '=' + (i.search('oauth_') === 0 ? fd[i]: encodeURIComponent(fd[i]))); return p; })(data).join('&');
 
         var reader = new FileReader();
         var root = this._getRoot();
         var result = "", start = 0;
-        reader.onerror = function(e){console.log(e);}; 
         reader.onloadend = function(evt){
             if (evt.target.readyState == FileReader.DONE){
                 var xhr = $.ajax(); // new XMLHttpRequest();
                 xhr.open('PUT', [url + method, root].join('/') + (params.path? params.path: '') + '?' + codedparams, true);
+                xhr.upload.onprogress = progressCallback;
                 xhr.onerror = errorCallback;
                 xhr.onreadystatechange = function(evt) {
                     if (this.readyState == 4 && this.status == 200) {
@@ -169,11 +169,11 @@
         this.api(url, params, successCallback, errorCallback);
     };
 
-    c.putFile = function(params, successCallback, errorCallback) {
+    c.putFile = function(params, successCallback, errorCallback, progressCallback) {
         params.overwrite = params.overwrite || false;
         params.mimeType = params.fileObj.type || 'text/plain';
         
-        this._fileapi('files_put', params, successCallback, errorCallback);
+        this._fileapi('files_put', params, successCallback, errorCallback, progressCallback);
     };
 
     c.shares = function(params, successCallback, errorCallback) {
