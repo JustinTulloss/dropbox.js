@@ -135,7 +135,13 @@
                 };
                 xhr.overrideMimeType(data.mimeType);
                 xhr.setRequestHeader('Content-Type', data.mimeType);
-                xhr.sendAsBinary(evt.target.result);
+                if (xhr.sendAsBinary)
+                    xhr.sendAsBinary(evt.target.result);
+                else {
+                    var buf = Array.prototype.map.call(evt.target.result, function(x){return x.charCodeAt(0) & 0xff;});
+                    var ui8a = new Uint8Array(buf, 0);
+                    xhr.send(ui8a.buffer);
+                }
             }
         };
         reader.readAsBinaryString(data.fileObj);
